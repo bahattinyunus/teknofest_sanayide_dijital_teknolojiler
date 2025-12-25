@@ -1,102 +1,108 @@
 import asyncio
 import random
-import json
 import logging
+import json
 from datetime import datetime
-from typing import Dict, Any
+from typing import List, Dict, Any
+from fastapi import FastAPI, WebSocket, Request
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
 
-# Loglama yapılandırması - Endüstriyel standart
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - [SİSTEM] - %(levelname)s - %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S'
-)
-logger = logging.getLogger("EndustriyelKontrol")
+# Loglama yapılandırması
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("EndustriyelSistem")
 
-class SensorDugumu:
+app = FastAPI(title="Teknofest Sanayide Dijital Teknolojiler")
+
+# Statik dosyalar ve şablonlar
+app.mount("/static", StaticFiles(directory="src/static"), name="static")
+templates = Jinja2Templates(directory="src/templates")
+
+class DijitalIkiz:
     """
-    Endüstriyel bir IoT sensörünü simüle eder.
-    Sıcaklık, Basınç ve Titreşim verileri üretir.
+    Fiziksel bir varlığın dijital kopyası.
+    Verimlilik ve Sağlık durumunu analiz eder.
     """
-    def __init__(self, cihaz_id: str, tip: str):
+    def __init__(self, cihaz_id: str):
         self.cihaz_id = cihaz_id
-        self.tip = tip
-        self.durum = "AKTİF"
+        self.nominal_sicaklik = 45.0
+        self.saglik_puani = 100.0
+        self.verimlilik = 100.0
 
-    async def veri_olustur(self) -> Dict[str, Any]:
-        """Sensörden asenkron veri okuma simülasyonu"""
-        await asyncio.sleep(random.uniform(0.5, 2.0))
-        
-        veri = {
-            "zaman_damgasi": datetime.now().isoformat(),
+    def durumu_guncelle(self, sensor_verisi: Dict):
+        """Sensör verisine göre dijital ikizi günceller"""
+        deger = sensor_verisi["metrikler"]["deger"]
+        tip = sensor_verisi["tip"]
+
+        if tip == "SICAKLIK":
+            # Sıcaklık farkına göre verimlilik düşüşü simülasyonu
+            sapma = abs(deger - self.nominal_sicaklik)
+            if sapma > 10:
+                self.verimlilik = max(0, 100 - (sapma * 1.5))
+                self.saglik_puani -= 0.1
+            else:
+                self.verimlilik = min(100, self.verimlilik + 0.5)
+
+    def get_durum(self) -> Dict:
+        return {
             "cihaz_id": self.cihaz_id,
-            "tip": self.tip,
-            "metrikler": {}
+            "saglik": round(self.saglik_puani, 2),
+            "verimlilik": round(self.verimlilik, 2),
+            "durum": "KRİTİK" if self.saglik_puani < 50 else "NORMAL"
         }
 
-        if self.tip == "SICAKLIK":
-            veri["metrikler"]["deger"] = round(random.uniform(20.0, 85.0), 2)
-            veri["metrikler"]["birim"] = "Celsius"
-        elif self.tip == "BASINC":
-            veri["metrikler"]["deger"] = round(random.uniform(1.0, 10.0), 2)
-            veri["metrikler"]["birim"] = "Bar"
-        elif self.tip == "TITRESIM":
-            veri["metrikler"]["deger"] = round(random.uniform(0.0, 5.0), 3)
-            veri["metrikler"]["birim"] = "mm/s"
-            
-        return veri
-
-class VeriToplayici:
-    """
-    Farklı sensörlerden gelen verileri toplar ve analiz eder.
-    """
+class FabrikaSimulasyonu:
     def __init__(self):
-        self.veritabani_baglantisi = False
-        
-    async def baslat(self):
-        logger.info("Veri Toplayıcı başlatılıyor...")
-        self.veritabani_baglantisi = True
-        logger.info("Bulut veritabanı bağlantısı kuruldu: [GÜVENLİ SSL/TLS]")
+        self.cihazlar = ["TR-M01", "TR-M02", "TR-K01"]
+        self.ikizler = {c: DijitalIkiz(c) for c in self.cihazlar}
 
-    async def veriyi_isle(self, veri: Dict[str, Any]):
-        """Gelen veriyi işler ve anomali tespiti yapar"""
-        deger = veri["metrikler"]["deger"]
-        cihaz = veri["cihaz_id"]
-        
-        log_mesaji = f"Veri alındı: {cihaz} -> {deger} {veri['metrikler']['birim']}"
-        
-        # Basit Anomali Tespiti Simülasyonu
-        if (veri["tip"] == "SICAKLIK" and deger > 80.0) or \
-           (veri["tip"] == "BASINC" and deger > 9.0):
-            logger.warning(f"KRİTİK UYARI: {cihaz} üzerinde eşik değer aşıldı! Değer: {deger}")
-        else:
-            logger.info(log_mesaji)
+    async def veri_uret(self) -> Dict:
+        """Fabrika verilerini üretir ve dijital ikizleri günceller."""
+        paket = {
+            "zaman": datetime.now().strftime("%H:%M:%S"),
+            "sensorler": [],
+            "analitik": []
+        }
 
-async def ana_dongu():
-    logger.info("TEKNOFEST Endüstriyel Kontrol Sistemi v1.0 başlatılıyor...")
-    
-    toplayici = VeriToplayici()
-    await toplayici.baslat()
-    
-    sensorler = [
-        SensorDugumu("TR-41-M01", "SICAKLIK"),
-        SensorDugumu("TR-41-M02", "BASINC"),
-        SensorDugumu("TR-41-M03", "TITRESIM"),
-        SensorDugumu("TR-61-K01", "SICAKLIK")
-    ]
-    
+        for cihaz_id in self.cihazlar:
+            # Sensör Verisi Simülasyonu
+            sicaklik = round(random.normalvariate(45, 5), 1)
+            basinc = round(random.normalvariate(5, 0.5), 1)
+            
+            # Dijital İkiz Güncelleme
+            ikiz = self.ikizler[cihaz_id]
+            ikiz.durumu_guncelle({"tip": "SICAKLIK", "metrikler": {"deger": sicaklik}})
+            
+            paket["sensorler"].append({
+                "id": cihaz_id,
+                "sicaklik": sicaklik,
+                "basinc": basinc
+            })
+            paket["analitik"].append(ikiz.get_durum())
+            
+        return paket
+
+simulasyon = FabrikaSimulasyonu()
+
+@app.get("/", response_class=HTMLResponse)
+async def get(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request})
+
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await websocket.accept()
     try:
         while True:
-            gorevler = [sensor.veri_olustur() for sensor in sensorler]
-            sonuclar = await asyncio.gather(*gorevler)
-            
-            for sonuc in sonuclar:
-                await toplayici.veriyi_isle(sonuc)
-                
-            await asyncio.sleep(1)
-            
-    except KeyboardInterrupt:
-        logger.info("Sistem kapatılıyor...")
+            # Gerçek zamanlı veri akışı (100ms gecikme ile hızlı simülasyon)
+            veri = await simulasyon.veri_uret()
+            await websocket.send_json(veri)
+            await asyncio.sleep(1) # Saniyede 1 güncelleme
+    except Exception as e:
+        logger.error(f"WebSocket hatası: {e}")
+    finally:
+        pass
 
 if __name__ == "__main__":
-    asyncio.run(ana_dongu())
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)

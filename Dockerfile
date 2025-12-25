@@ -15,5 +15,8 @@ COPY src/ ./src/
 RUN useradd -m teknofest
 USER teknofest
 
-# Uygulamayı başlat
-CMD ["python", "src/main.py"]
+# Portu dışa aç
+EXPOSE 8000
+
+# Web sunucusunu başlat
+CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]

@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TEKNOFEST Endüstriyel Kontrol Paneli</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { background-color: #0d1117; color: #c9d1d9; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 20px; }
+        .container { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px; }
+        .card { background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+        h1 { color: #58a6ff; text-align: center; border-bottom: 1px solid #30363d; padding-bottom: 10px; }
+        h3 { color: #79c0ff; margin-top: 0; }
+        .status-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
+        .status-box { background: #21262d; padding: 10px; text-align: center; border-radius: 4px; }
+        .value { font-size: 24px; font-weight: bold; color: #3fb950; }
+        .critical { color: #f85149; }
+        canvas { max-height: 300px; }
+    </style>
+</head>
+<body>
+    <h1>🏭 TEKNOFEST Dijital İkiz & İzleme Paneli</h1>
+    
+    <div class="container">
+        <!-- Canlı Veri Grafiği -->
+        <div class="card">
+            <h3>📈 Gerçek Zamanlı Sensör Verileri</h3>
+            <canvas id="sensorChart"></canvas>
+        </div>
+
+        <!-- Dijital İkiz Durumu -->
+        <div class="card">
+            <h3>🤖 Dijital İkiz Analitiği (Verimlilik)</h3>
+            <div id="analyticsContainer" class="status-grid">
+                <!-- JS ile doldurulacak -->
+            </div>
+            <canvas id="efficiencyChart"></canvas>
+        </div>
+    </div>
+
+    <script>
+        // Grafik kurulumları
+        const ctx = document.getElementById('sensorChart').getContext('2d');
+        const sensorChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [
+                    { label: 'TR-M01 Sıcaklık', borderColor: '#58a6ff', data: [] },
+                    { label: 'TR-M02 Sıcaklık', borderColor: '#3fb950', data: [] }
+                ]
+            },
+            options: { animation: false, scales: { y: { beginAtZero: false } } }
+        });
+
+        const ctxEff = document.getElementById('efficiencyChart').getContext('2d');
+        const effChart = new Chart(ctxEff, {
+            type: 'bar',
+            data: {
+                labels: ['TR-M01', 'TR-M02', 'TR-K01'],
+                datasets: [{ 
+                    label: 'Anlık Verimlilik (%)', 
+                    backgroundColor: ['#1f6feb', '#238636', '#a371f7'],
+                    data: [100, 100, 100] 
+                }]
+            },
+            options: { scales: { y: { max: 100, min: 0 } } }
+        });
+
+        // WebSocket Bağlantısı
+        const ws = new WebSocket(`ws://${window.location.host}/ws`);
+        
+        ws.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            const time = data.zaman;
+
+            // Grafik güncelleme (Kayan pencere)
+            if (sensorChart.data.labels.length > 20) {
+                sensorChart.data.labels.shift();
+                sensorChart.data.datasets.forEach(d => d.data.shift());
+            }
+
+            sensorChart.data.labels.push(time);
+            sensorChart.data.datasets[0].data.push(data.sensorler[0].sicaklik);
+            sensorChart.data.datasets[1].data.push(data.sensorler[1].sicaklik);
+            sensorChart.update();
+
+            // Analitik güncelleme
+            const analyticsHtml = data.analitik.map(a => `
+                <div class="status-box">
+                    <div style="font-size: 12px; color: #8b949e;">${a.cihaz_id}</div>
+                    <div class="value ${a.verimlilik < 80 ? 'critical' : ''}">${a.verimlilik}%</div>
+                    <div style="font-size: 10px;">SAĞLIK: ${a.saglik}</div>
+                </div>
+            `).join('');
+            document.getElementById('analyticsContainer').innerHTML = analyticsHtml;
+
+            // Verimlilik Grafiği
+            effChart.data.datasets[0].data = data.analitik.map(a => a.verimlilik);
+            effChart.update();
+        };
+    </script>
+</body>
+</html>
