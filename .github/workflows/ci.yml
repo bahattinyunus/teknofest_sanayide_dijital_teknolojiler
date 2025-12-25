@@ -1,0 +1,39 @@
+name: Endüstriyel CI/CD Hattı
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  test-ve-kalite:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Python Kurulumu
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.9"
+
+    - name: Bağımlılıkları Yükle
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest
+
+    - name: Birim Testleri Çalıştır
+      run: |
+        pytest tests/
+
+  docker-insasi:
+    needs: test-ve-kalite
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Docker İmajını Oluştur
+      run: docker build . --file Dockerfile --tag teknofest-iot:latest

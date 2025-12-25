@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  # Ana IoT Simülasyon Servisi
+  iot-core:
+    build: .
+    container_name: teknofest-iot-core
+    restart: always
+    environment:
+      - LOG_LEVEL=INFO
+      - ENV=PRODUCTION
+    networks:
+      - factory-net
+  # (Opsiyonel) Gelecekte eklenecek Veritabanı Servisi
+  # database:
+  #   image: postgres:13
+  #   networks:
+  #     - factory-net
+
+networks:
+  factory-net:
+    driver: bridge
