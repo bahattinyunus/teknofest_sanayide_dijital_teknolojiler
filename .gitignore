@@ -1,0 +1,25 @@
+# General
+.DS_Store
+Thumbs.db
+*.log
+*.tmp
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.env
+venv/
+.venv/
+env/
+
+# Node
+node_modules/
+npm-debug.log
+yarn-error.log
+dist/
+build/
+
+# VS Code
+.vscode/
