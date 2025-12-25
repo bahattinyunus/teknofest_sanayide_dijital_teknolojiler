@@ -1,33 +1,33 @@
-# Contributing to Teknofest Industrial Digital Technologies
+# Teknofest Sanayide Dijital Teknolojiler Projesine Katkıda Bulunma
 
-We welcome contributions to the Teknofest Industrial Digital Technologies project! Please follow these guidelines to ensure a smooth collaboration process.
+Teknofest Sanayide Dijital Teknolojiler projesine katkılarınızı bekliyoruz! Sorunsuz bir işbirliği süreci için lütfen aşağıdaki yönergeleri takip edin.
 
-## How to Contribute
+## Nasıl Katkıda Bulunabilirsiniz?
 
-1.  **Fork the Repository**: Create a fork of this repository to your own GitHub account.
-2.  **Clone the Repository**: Clone your fork to your local machine.
+1.  **Depoyu Fork Edin**: Bu depoyu (repository) kendi GitHub hesabınıza "fork"layın.
+2.  **Depoyu Klonlayın**: Fork'ladığınız depoyu yerel makinenize klonlayın.
     ```bash
-    git clone https://github.com/your-username/teknofest_sanayide_dijital_teknolojiler.git
+    git clone https://github.com/kullanici-adiniz/teknofest_sanayide_dijital_teknolojiler.git
     ```
-3.  **Create a Branch**: Create a new branch for your feature or bug fix.
+3.  **Bir Dal (Branch) Oluşturun**: Özeliğiniz veya hata düzeltmeniz için yeni bir dal oluşturun.
     ```bash
-    git checkout -b feature/your-feature-name
+    git checkout -b feature/ozellik-adiniz
     ```
-4.  **Make Changes**: Implement your changes and commit them with clear, descriptive messages.
+4.  **Değişiklikleri Yapın**: Değişikliklerinizi uygulayın ve açık, açıklayıcı mesajlarla commit edin.
     ```bash
-    git commit -m "Add feature: ..."
+    git commit -m "Özellik eklendi: ..."
     ```
-5.  **Push to Fork**: Push your changes to your forked repository.
+5.  **Fork'unuza Push Edin**: Değişikliklerinizi fork'ladığınız depoya gönderin.
     ```bash
-    git push origin feature/your-feature-name
+    git push origin feature/ozellik-adiniz
     ```
-6.  **Submit a Pull Request**: Open a Pull Request (PR) from your fork to the main repository. Provide a detailed description of your changes.
+6.  **Pull Request Gönderin**: Fork'unuzdan ana depoya bir Pull Request (PR) açın. Değişikliklerinizin ayrıntılı bir açıklamasını yapın.
 
-## Code Style
+## Kod Stili
 
--   Follow standard coding conventions for the languages used.
--   Keep code clean, readable, and well-documented.
+-   Kullanılan diller için standart kodlama kurallarına uyun.
+-   Kodun temiz, okunabilir ve iyi belgelenmiş olmasına özen gösterin.
 
-## Reporting Issues
+## Sorun Bildirme
 
-If you encounter any bugs or have suggestions for improvements, please open an issue in the repository. Provide as much detail as possible to help us understand and resolve the matter.
+Herhangi bir hatayla karşılaşırsanız veya iyileştirme önerileriniz varsa, lütfen depoda bir sorun (issue) açın. Konuyu anlamamız ve çözmemiz için mümkün olduğunca fazla ayrıntı sağlayın.
