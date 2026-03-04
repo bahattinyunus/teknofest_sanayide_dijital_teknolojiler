@@ -3,102 +3,189 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TEKNOFEST Endüstriyel Kontrol Paneli</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <title>SKYGUARD | Teknofest Komuta Merkezi</title>
     <style>
-        body { background-color: #0d1117; color: #c9d1d9; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 20px; }
-        .container { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px; }
-        .card { background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
-        h1 { color: #58a6ff; text-align: center; border-bottom: 1px solid #30363d; padding-bottom: 10px; }
-        h3 { color: #79c0ff; margin-top: 0; }
-        .status-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
-        .status-box { background: #21262d; padding: 10px; text-align: center; border-radius: 4px; }
-        .value { font-size: 24px; font-weight: bold; color: #3fb950; }
-        .critical { color: #f85149; }
-        canvas { max-height: 300px; }
+        :root { --bg: #0b0e14; --card: #151921; --accent: #00f2ff; --warn: #ffae00; --danger: #ff4d4d; --text: #e0e6ed; }
+        body { background: var(--bg); color: var(--text); font-family: 'Inter', system-ui, sans-serif; margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        
+        /* Header */
+        header { padding: 15px 30px; background: rgba(21, 25, 33, 0.8); border-bottom: 1px solid #2d333b; display: flex; justify-content: space-between; align-items: center; backdrop-filter: blur(10px); }
+        .logo { font-size: 20px; font-weight: 800; letter-spacing: 2px; color: var(--accent); }
+        .system-status { display: flex; gap: 20px; font-size: 13px; font-weight: 500; }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 5px; background: #3fb950; box-shadow: 0 0 10px #3fb950; }
+
+        /* Layout */
+        main { display: grid; grid-template-columns: 280px 1fr 320px; gap: 2px; flex: 1; background: #1c2128; }
+        .panel { background: var(--bg); padding: 20px; display: flex; flex-direction: column; }
+
+        /* Telemetry Panel */
+        .telemetry-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+        .metric { background: var(--card); padding: 15px; border-radius: 8px; border: 1px solid #30363d; position: relative; overflow: hidden; }
+        .metric::after { content: ''; position: absolute; bottom: 0; left: 0; height: 2px; width: 100%; background: var(--accent); opacity: 0.3; }
+        .label { font-size: 11px; color: #8b949e; text-transform: uppercase; }
+        .val { font-size: 20px; font-weight: 700; color: var(--text); margin-top: 5px; }
+
+        /* Map Area */
+        .map-container { position: relative; display: flex; align-items: center; justify-content: center; background: radial-gradient(circle, #1c2128 0%, #0b0e14 100%); overflow: hidden; }
+        #fieldCanvas { border: 1px solid #30363d; box-shadow: 0 0 40px rgba(0,0,0,0.5); border-radius: 4px; }
+
+        /* Controls Panel */
+        .btn { padding: 12px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; transition: 0.2s; text-transform: uppercase; font-size: 12px; margin-bottom: 10px; }
+        .btn-blue { background: #1f6feb; color: white; }
+        .btn-blue:hover { background: #388bfd; }
+        .btn-emergency { background: var(--danger); color: white; margin-top: auto; font-size: 14px; padding: 15px; box-shadow: 0 0 20px rgba(255, 77, 77, 0.3); }
+
+        /* Alerts */
+        .alert { background: rgba(255, 77, 77, 0.1); border-left: 4px solid var(--danger); padding: 10px; font-size: 12px; margin-top: 10px; display: none; }
     </style>
 </head>
 <body>
-    <h1>🏭 TEKNOFEST Dijital İkiz & İzleme Paneli</h1>
-    
-    <div class="container">
-        <!-- Canlı Veri Grafiği -->
-        <div class="card">
-            <h3>📈 Gerçek Zamanlı Sensör Verileri</h3>
-            <canvas id="sensorChart"></canvas>
+    <header>
+        <div class="logo">SKYGUARD <span style="font-weight: 300;">AMR-OS</span></div>
+        <div class="system-status">
+            <div><span class="status-dot"></span>BAĞLI: SKYGUARD-01</div>
+            <div id="clock">00:00:00</div>
         </div>
+    </header>
 
-        <!-- Dijital İkiz Durumu -->
-        <div class="card">
-            <h3>🤖 Dijital İkiz Analitiği (Verimlilik)</h3>
-            <div id="analyticsContainer" class="status-grid">
-                <!-- JS ile doldurulacak -->
+    <main>
+        <!-- Telemetry -->
+        <section class="panel">
+            <h3 style="font-size: 14px; margin-bottom: 20px; color: #8b949e;">TELEMETRİ ANALİZİ</h3>
+            <div class="telemetry-grid">
+                <div class="metric"><div class="label">BATARYA</div><div class="val" id="batVal">--%</div></div>
+                <div class="metric"><div class="label">VOLTAJ</div><div class="val" id="voltVal">--.V</div></div>
+                <div class="metric"><div class="label">AKIM</div><div class="val" id="ampVal">--.A</div></div>
+                <div class="metric"><div class="label">HIZ</div><div class="val" id="speedVal">--.m/s</div></div>
             </div>
-            <canvas id="efficiencyChart"></canvas>
-        </div>
-    </div>
+            
+            <h3 style="font-size: 14px; margin-top: 20px; margin-bottom: 10px; color: #8b949e;">İSTASYON KONTROL</h3>
+            <div style="display: flex; flex-direction: column; gap: 5px;">
+                <div style="font-size: 11px; margin-bottom: 5px;">ALMA NOKTALARI</div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px;">
+                    <button class="btn btn-blue" onclick="goto('A1')">A1</button>
+                    <button class="btn btn-blue" onclick="goto('A2')">A2</button>
+                    <button class="btn btn-blue" onclick="goto('A3')">A3</button>
+                    <button class="btn btn-blue" onclick="goto('A4')">A4</button>
+                </div>
+                <div style="font-size: 11px; margin: 10px 0 5px;">BIRAKMA NOKTALARI</div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px;">
+                    <button class="btn btn-blue" onclick="goto('B1')">B1</button>
+                    <button class="btn btn-blue" onclick="goto('B2')">B2</button>
+                    <button class="btn btn-blue" onclick="goto('B3')">B3</button>
+                    <button class="btn btn-blue" onclick="goto('B4')">B4</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Map -->
+        <section class="map-container">
+            <canvas id="fieldCanvas" width="800" height="600"></canvas>
+            <div id="estopAlert" class="alert" style="position: absolute; bottom: 20px; width: 80%; display: none;">
+                ⚠️ ACİL DURDURMA AKTİF: Robot sistemleri kilitlendi. Güvenliği kontrol edip sıfırlayın.
+            </div>
+        </section>
+
+        <!-- Logs & Status -->
+        <section class="panel">
+            <h3 style="font-size: 14px; margin-bottom: 20px; color: #8b949e;">İŞ DURUMU & GÜNLÜK</h3>
+            <div id="jobStatus" style="background: var(--card); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                <div style="font-size: 12px; color: #8b949e;">AKTİF GÖREV</div>
+                <div id="activeJob" style="font-weight: bold; margin-top: 5px;">BEKLEMEDE</div>
+            </div>
+
+            <div id="logArea" style="flex: 1; font-family: monospace; font-size: 11px; color: #58a6ff; overflow-y: auto;">
+                [SYS] Motor sürücüleri başlatıldı...<br>
+                [SYS] LiDAR haritalama aktif.<br>
+            </div>
+
+            <button class="btn btn-emergency" id="estopBtn" onclick="toggleEmergency()">ACİL DURDURMA</button>
+        </section>
+    </main>
 
     <script>
-        // Grafik kurulumları
-        const ctx = document.getElementById('sensorChart').getContext('2d');
-        const sensorChart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: [],
-                datasets: [
-                    { label: 'TR-M01 Sıcaklık', borderColor: '#58a6ff', data: [] },
-                    { label: 'TR-M02 Sıcaklık', borderColor: '#3fb950', data: [] }
-                ]
-            },
-            options: { animation: false, scales: { y: { beginAtZero: false } } }
-        });
+        const canvas = document.getElementById('fieldCanvas');
+        const ctx = canvas.getContext('2d');
+        let robotPos = {x: 0, y: 0};
+        let isEmergency = false;
 
-        const ctxEff = document.getElementById('efficiencyChart').getContext('2d');
-        const effChart = new Chart(ctxEff, {
-            type: 'bar',
-            data: {
-                labels: ['TR-M01', 'TR-M02', 'TR-K01'],
-                datasets: [{ 
-                    label: 'Anlık Verimlilik (%)', 
-                    backgroundColor: ['#1f6feb', '#238636', '#a371f7'],
-                    data: [100, 100, 100] 
-                }]
-            },
-            options: { scales: { y: { max: 100, min: 0 } } }
-        });
+        function drawField() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Grid
+            ctx.strokeStyle = '#21262d';
+            ctx.lineWidth = 1;
+            for(let i=0; i<canvas.width; i+=40) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke(); }
+            for(let i=0; i<canvas.height; i+=40) { ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(canvas.width, i); ctx.stroke(); }
 
-        // WebSocket Bağlantısı
+            // Stations
+            const stations = [
+                {n: 'A1', x: 2, y: 2}, {n: 'A2', x: 6, y: 2}, {n: 'A3', x: 10, y: 2}, {n: 'A4', x: 14, y: 2},
+                {n: 'B1', x: 2, y: 12}, {n: 'B2', x: 6, y: 12}, {n: 'B3', x: 10, y: 12}, {n: 'B4', x: 14, y: 12},
+                {n: 'START', x: 0, y: 0}, {n: 'CHRG', x: 17, y: 7}
+            ];
+            
+            stations.forEach(s => {
+                ctx.fillStyle = s.n.startsWith('A') ? '#1f6feb' : (s.n === 'CHRG' ? '#a371f7' : '#238636');
+                ctx.fillRect(s.x*40, s.y*40, 30, 30);
+                ctx.fillStyle = 'white';
+                ctx.font = '10px Arial';
+                ctx.fillText(s.n, s.x*40 + 5, s.y*40 + 20);
+            });
+
+            // Robot
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = isEmergency ? '#ff4d4d' : '#00f2ff';
+            ctx.fillStyle = isEmergency ? '#ff4d4d' : '#00f2ff';
+            ctx.beginPath();
+            ctx.arc(robotPos.x*40 + 15, robotPos.y*40 + 15, 12, 0, Math.PI*2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+        }
+
         const ws = new WebSocket(`ws://${window.location.host}/ws`);
-        
-        ws.onmessage = function(event) {
-            const data = JSON.parse(event.data);
-            const time = data.zaman;
+        ws.onmessage = (e) => {
+            const data = JSON.parse(e.data);
+            document.getElementById('clock').innerText = data.zaman;
+            document.getElementById('batVal').innerText = data.robot.battery + '%';
+            document.getElementById('voltVal').innerText = data.robot.voltage + 'V';
+            document.getElementById('ampVal').innerText = data.robot.current + 'A';
+            document.getElementById('speedVal').innerText = data.robot.speed + 'm/s';
+            
+            robotPos = data.robot.pos;
+            isEmergency = data.robot.emergency;
 
-            // Grafik güncelleme (Kayan pencere)
-            if (sensorChart.data.labels.length > 20) {
-                sensorChart.data.labels.shift();
-                sensorChart.data.datasets.forEach(d => d.data.shift());
-            }
+            document.getElementById('estopAlert').style.display = isEmergency ? 'block' : 'none';
+            document.getElementById('estopBtn').innerText = isEmergency ? 'RESETLE' : 'ACİL DURDURMA';
+            document.getElementById('estopBtn').style.background = isEmergency ? '#3fb950' : '#ff4d4d';
 
-            sensorChart.data.labels.push(time);
-            sensorChart.data.datasets[0].data.push(data.sensorler[0].sicaklik);
-            sensorChart.data.datasets[1].data.push(data.sensorler[1].sicaklik);
-            sensorChart.update();
-
-            // Analitik güncelleme
-            const analyticsHtml = data.analitik.map(a => `
-                <div class="status-box">
-                    <div style="font-size: 12px; color: #8b949e;">${a.cihaz_id}</div>
-                    <div class="value ${a.verimlilik < 80 ? 'critical' : ''}">${a.verimlilik}%</div>
-                    <div style="font-size: 10px;">SAĞLIK: ${a.saglik}</div>
-                </div>
-            `).join('');
-            document.getElementById('analyticsContainer').innerHTML = analyticsHtml;
-
-            // Verimlilik Grafiği
-            effChart.data.datasets[0].data = data.analitik.map(a => a.verimlilik);
-            effChart.update();
+            drawField();
         };
+
+        function goto(station) {
+            fetch('/api/command', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({action: 'GOTO', station: station})
+            });
+            log(`[NAV] Hedef: ${station}`);
+        }
+
+        function toggleEmergency() {
+            fetch('/api/command', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({action: isEmergency ? 'RESET' : 'EMERGENCY_STOP'})
+            });
+        }
+
+        function log(msg) {
+            const area = document.getElementById('logArea');
+            area.innerHTML += `> ${msg}<br>`;
+            area.scrollTop = area.scrollHeight;
+        }
+
+        setInterval(drawField, 100);
     </script>
 </body>
 </html>
