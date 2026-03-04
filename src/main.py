@@ -11,7 +11,7 @@ from fastapi.templating import Jinja2Templates
 
 # Loglama yapılandırması
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("EndustriyelSistem")
+logger = logging.getLogger("SKYGUARD-OS")
 
 app = FastAPI(title="Teknofest Sanayide Dijital Teknolojiler")
 
@@ -21,73 +21,104 @@ templates = Jinja2Templates(directory="src/templates")
 
 class DijitalIkiz:
     """
-    Fiziksel bir varlığın dijital kopyası.
-    Verimlilik ve Sağlık durumunu analiz eder.
+    Fiziksel bir AMR'nin dijital kopyası.
+    Batarya, Posizyon ve Hareket durumunu simüle eder.
     """
     def __init__(self, cihaz_id: str):
         self.cihaz_id = cihaz_id
-        self.nominal_sicaklik = 45.0
-        self.saglik_puani = 100.0
-        self.verimlilik = 100.0
+        self.battery = 100.0
+        self.voltage = 24.0
+        self.current = 0.5
+        self.speed = 0.0
+        self.pos = {"x": 0.0, "y": 0.0}
+        self.target = None
+        self.emergency = False
+        self.status = "IDLE"
 
-    def durumu_guncelle(self, sensor_verisi: Dict):
-        """Sensör verisine göre dijital ikizi günceller"""
-        deger = sensor_verisi["metrikler"]["deger"]
-        tip = sensor_verisi["tip"]
+    def update(self):
+        """Her tick'te robot durumunu günceller"""
+        if self.emergency:
+            self.speed = 0
+            self.status = "EMERGENCY_STOP"
+            return
 
-        if tip == "SICAKLIK":
-            # Sıcaklık farkına göre verimlilik düşüşü simülasyonu
-            sapma = abs(deger - self.nominal_sicaklik)
-            if sapma > 10:
-                self.verimlilik = max(0, 100 - (sapma * 1.5))
-                self.saglik_puani -= 0.1
+        if self.target:
+            self.status = "NAVIGATING"
+            dx = self.target["x"] - self.pos["x"]
+            dy = self.target["y"] - self.pos["y"]
+            dist = (dx**2 + dy**2)**0.5
+            
+            if dist < 0.1:
+                self.pos = self.target.copy()
+                self.target = None
+                self.speed = 0
+                self.status = "IDLE"
             else:
-                self.verimlilik = min(100, self.verimlilik + 0.5)
+                self.speed = 1.2 # m/s (Simüle)
+                move_dist = 0.2 # Tick başına hareket
+                self.pos["x"] += (dx / dist) * move_dist
+                self.pos["y"] += (dy / dist) * move_dist
+        
+        # Batarya tüketimi simülasyonu
+        consumption = 0.001 if self.status == "IDLE" else 0.01
+        self.battery = max(0, self.battery - consumption)
+        self.voltage = 22.0 + (self.battery / 100 * 4.0)
+        self.current = 0.5 + (1.5 if self.status == "NAVIGATING" else 0)
 
-    def get_durum(self) -> Dict:
+    def get_state(self) -> Dict:
         return {
-            "cihaz_id": self.cihaz_id,
-            "saglik": round(self.saglik_puani, 2),
-            "verimlilik": round(self.verimlilik, 2),
-            "durum": "KRİTİK" if self.saglik_puani < 50 else "NORMAL"
+            "id": self.cihaz_id,
+            "battery": round(self.battery, 1),
+            "voltage": round(self.voltage, 2),
+            "current": round(self.current, 2),
+            "speed": round(self.speed, 2),
+            "pos": {"x": round(self.pos["x"], 2), "y": round(self.pos["y"], 2)},
+            "emergency": self.emergency,
+            "status": self.status
         }
 
 class FabrikaSimulasyonu:
     def __init__(self):
-        self.cihazlar = ["TR-M01", "TR-M02", "TR-K01"]
-        self.ikizler = {c: DijitalIkiz(c) for c in self.cihazlar}
-
-    async def veri_uret(self) -> Dict:
-        """Fabrika verilerini üretir ve dijital ikizleri günceller."""
-        paket = {
-            "zaman": datetime.now().strftime("%H:%M:%S"),
-            "sensorler": [],
-            "analitik": []
+        self.robot = DijitalIkiz("SKYGUARD-01")
+        self.stations = {
+            'A1': {'x': 2, 'y': 2}, 'A2': {'x': 6, 'y': 2}, 'A3': {'x': 10, 'y': 2}, 'A4': {'x': 14, 'y': 2},
+            'B1': {'x': 2, 'y': 12}, 'B2': {'x': 6, 'y': 12}, 'B3': {'x': 10, 'y': 12}, 'B4': {'x': 14, 'y': 12},
+            'START': {'x': 0, 'y': 0}, 'CHRG': {'x': 17, 'y': 7}
         }
 
-        for cihaz_id in self.cihazlar:
-            # Sensör Verisi Simülasyonu
-            sicaklik = round(random.normalvariate(45, 5), 1)
-            basinc = round(random.normalvariate(5, 0.5), 1)
-            
-            # Dijital İkiz Güncelleme
-            ikiz = self.ikizler[cihaz_id]
-            ikiz.durumu_guncelle({"tip": "SICAKLIK", "metrikler": {"deger": sicaklik}})
-            
-            paket["sensorler"].append({
-                "id": cihaz_id,
-                "sicaklik": sicaklik,
-                "basinc": basinc
-            })
-            paket["analitik"].append(ikiz.get_durum())
-            
-        return paket
+    async def veri_uret(self) -> Dict:
+        """Robot verilerini üretir ve dijital ikizi günceller."""
+        self.robot.update()
+        return {
+            "zaman": datetime.now().strftime("%H:%M:%S"),
+            "robot": self.robot.get_state()
+        }
+
+    def komut_isle(self, komut: Dict):
+        action = komut.get("action")
+        if action == "GOTO":
+            station_id = komut.get("station")
+            if station_id in self.stations:
+                self.robot.target = self.stations[station_id]
+                logger.info(f"Yönlendirme: {station_id}")
+        elif action == "EMERGENCY_STOP":
+            self.robot.emergency = True
+            logger.warning("ACİL DURDURMA TETİKLENDİ")
+        elif action == "RESET":
+            self.robot.emergency = False
+            logger.info("Sistem Resetlendi")
 
 simulasyon = FabrikaSimulasyonu()
 
 @app.get("/", response_class=HTMLResponse)
 async def get(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
+
+@app.post("/api/command")
+async def handle_command(request: Request):
+    komut = await request.json()
+    simulasyon.komut_isle(komut)
+    return {"status": "success"}
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):

@@ -1,44 +1,264 @@
 <!DOCTYPE html>
 <html lang="tr">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SKYGUARD | Teknofest Komuta Merkezi</title>
+    <title>SKYGUARD | Teknofest Komuta Merkezi</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
     <style>
-        :root { --bg: #0b0e14; --card: #151921; --accent: #00f2ff; --warn: #ffae00; --danger: #ff4d4d; --text: #e0e6ed; }
-        body { background: var(--bg); color: var(--text); font-family: 'Inter', system-ui, sans-serif; margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
-        
-        /* Header */
-        header { padding: 15px 30px; background: rgba(21, 25, 33, 0.8); border-bottom: 1px solid #2d333b; display: flex; justify-content: space-between; align-items: center; backdrop-filter: blur(10px); }
-        .logo { font-size: 20px; font-weight: 800; letter-spacing: 2px; color: var(--accent); }
-        .system-status { display: flex; gap: 20px; font-size: 13px; font-weight: 500; }
-        .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 5px; background: #3fb950; box-shadow: 0 0 10px #3fb950; }
+        :root {
+            --bg: #080a0f;
+            --card: rgba(21, 25, 33, 0.7);
+            --accent: #00f2ff;
+            --accent-glow: rgba(0, 242, 255, 0.3);
+            --warn: #ffae00;
+            --danger: #ff4d4d;
+            --text: #e0e6ed;
+            --glass: rgba(255, 255, 255, 0.03);
+            --border: rgba(255, 255, 255, 0.1);
+        }
 
-        /* Layout */
-        main { display: grid; grid-template-columns: 280px 1fr 320px; gap: 2px; flex: 1; background: #1c2128; }
-        .panel { background: var(--bg); padding: 20px; display: flex; flex-direction: column; }
+        * {
+            box-sizing: border-box;
+        }
 
-        /* Telemetry Panel */
-        .telemetry-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
-        .metric { background: var(--card); padding: 15px; border-radius: 8px; border: 1px solid #30363d; position: relative; overflow: hidden; }
-        .metric::after { content: ''; position: absolute; bottom: 0; left: 0; height: 2px; width: 100%; background: var(--accent); opacity: 0.3; }
-        .label { font-size: 11px; color: #8b949e; text-transform: uppercase; }
-        .val { font-size: 20px; font-weight: 700; color: var(--text); margin-top: 5px; }
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Outfit', sans-serif;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+            background-image:
+                radial-gradient(circle at 50% 50%, #1a202c 0%, #080a0f 100%);
+        }
+
+        /* Glassmorphism Effect */
+        .glass-panel {
+            background: var(--card);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
+        }
+
+        header {
+            padding: 20px 40px;
+            background: rgba(8, 10, 15, 0.8);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            backdrop-filter: blur(20px);
+            z-index: 100;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 800;
+            letter-spacing: 3px;
+            color: var(--accent);
+            text-shadow: 0 0 15px var(--accent-glow);
+        }
+
+        .system-status {
+            display: flex;
+            gap: 30px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+            background: #3fb950;
+            box-shadow: 0 0 12px #3fb950;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+
+            100% {
+                opacity: 1;
+            }
+        }
+
+        main {
+            display: grid;
+            grid-template-columns: 320px 1fr 340px;
+            gap: 15px;
+            padding: 15px;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            font-size: 12px;
+            font-weight: 800;
+            color: #8b949e;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .panel-header::before {
+            content: '';
+            width: 4px;
+            height: 12px;
+            background: var(--accent);
+            border-radius: 2px;
+        }
+
+        /* Telemetry */
+        .telemetry-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .metric {
+            background: var(--glass);
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            transition: 0.3s;
+        }
+
+        .metric:hover {
+            border-color: var(--accent-glow);
+            background: rgba(0, 242, 255, 0.05);
+        }
+
+        .label {
+            font-size: 10px;
+            color: #8b949e;
+            font-weight: 600;
+        }
+
+        .val {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--text);
+            margin-top: 4px;
+        }
+
+        /* Chart Area */
+        .chart-container {
+            height: 140px;
+            margin-top: 15px;
+        }
 
         /* Map Area */
-        .map-container { position: relative; display: flex; align-items: center; justify-content: center; background: radial-gradient(circle, #1c2128 0%, #0b0e14 100%); overflow: hidden; }
-        #fieldCanvas { border: 1px solid #30363d; box-shadow: 0 0 40px rgba(0,0,0,0.5); border-radius: 4px; }
+        .map-container {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
 
-        /* Controls Panel */
-        .btn { padding: 12px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; transition: 0.2s; text-transform: uppercase; font-size: 12px; margin-bottom: 10px; }
-        .btn-blue { background: #1f6feb; color: white; }
-        .btn-blue:hover { background: #388bfd; }
-        .btn-emergency { background: var(--danger); color: white; margin-top: auto; font-size: 14px; padding: 15px; box-shadow: 0 0 20px rgba(255, 77, 77, 0.3); }
+        #fieldCanvas {
+            max-width: 100%;
+            max-height: 100%;
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        /* Controls */
+        .control-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+
+        .btn {
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.2s;
+            text-transform: uppercase;
+            font-size: 11px;
+            background: var(--glass);
+            color: var(--text);
+        }
+
+        .btn:hover {
+            background: var(--accent);
+            color: #000;
+            border-color: var(--accent);
+            box-shadow: 0 0 15px var(--accent-glow);
+        }
+
+        .btn-emergency {
+            background: rgba(255, 77, 77, 0.1);
+            color: var(--danger);
+            border-color: var(--danger);
+            margin-top: auto;
+            font-size: 14px;
+            padding: 18px;
+        }
+
+        .btn-emergency:hover {
+            background: var(--danger);
+            color: white;
+            box-shadow: 0 0 25px rgba(255, 77, 77, 0.4);
+        }
 
         /* Alerts */
-        .alert { background: rgba(255, 77, 77, 0.1); border-left: 4px solid var(--danger); padding: 10px; font-size: 12px; margin-top: 10px; display: none; }
+        .alert {
+            background: rgba(255, 77, 77, 0.15);
+            border: 1px solid var(--danger);
+            padding: 12px;
+            font-size: 12px;
+            border-radius: 8px;
+            color: var(--danger);
+            font-weight: 600;
+        }
+
+        #logArea {
+            flex: 1;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: #58a6ff;
+            overflow-y: auto;
+            padding-right: 5px;
+            scrollbar-width: thin;
+            scrollbar-color: var(--border) transparent;
+        }
+
+        #logArea::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        #logArea::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 10px;
+        }
     </style>
 </head>
+
 <body>
     <header>
         <div class="logo">SKYGUARD <span style="font-weight: 300;">AMR-OS</span></div>
@@ -50,51 +270,64 @@
 
     <main>
         <!-- Telemetry -->
-        <section class="panel">
-            <h3 style="font-size: 14px; margin-bottom: 20px; color: #8b949e;">TELEMETRİ ANALİZİ</h3>
+        <section class="panel glass-panel" style="padding: 20px; display: flex; flex-direction: column;">
+            <div class="panel-header">Telemetri Analizi</div>
             <div class="telemetry-grid">
-                <div class="metric"><div class="label">BATARYA</div><div class="val" id="batVal">--%</div></div>
-                <div class="metric"><div class="label">VOLTAJ</div><div class="val" id="voltVal">--.V</div></div>
-                <div class="metric"><div class="label">AKIM</div><div class="val" id="ampVal">--.A</div></div>
-                <div class="metric"><div class="label">HIZ</div><div class="val" id="speedVal">--.m/s</div></div>
-            </div>
-            
-            <h3 style="font-size: 14px; margin-top: 20px; margin-bottom: 10px; color: #8b949e;">İSTASYON KONTROL</h3>
-            <div style="display: flex; flex-direction: column; gap: 5px;">
-                <div style="font-size: 11px; margin-bottom: 5px;">ALMA NOKTALARI</div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px;">
-                    <button class="btn btn-blue" onclick="goto('A1')">A1</button>
-                    <button class="btn btn-blue" onclick="goto('A2')">A2</button>
-                    <button class="btn btn-blue" onclick="goto('A3')">A3</button>
-                    <button class="btn btn-blue" onclick="goto('A4')">A4</button>
+                <div class="metric">
+                    <div class="label">BATARYA</div>
+                    <div class="val" id="batVal">--%</div>
                 </div>
-                <div style="font-size: 11px; margin: 10px 0 5px;">BIRAKMA NOKTALARI</div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px;">
-                    <button class="btn btn-blue" onclick="goto('B1')">B1</button>
-                    <button class="btn btn-blue" onclick="goto('B2')">B2</button>
-                    <button class="btn btn-blue" onclick="goto('B3')">B3</button>
-                    <button class="btn btn-blue" onclick="goto('B4')">B4</button>
+                <div class="metric">
+                    <div class="label">VOLTAJ</div>
+                    <div class="val" id="voltVal">--.V</div>
+                </div>
+                <div class="metric">
+                    <div class="label">AKIM</div>
+                    <div class="val" id="ampVal">--.A</div>
+                </div>
+                <div class="metric">
+                    <div class="label">HIZ</div>
+                    <div class="val" id="speedVal">--.m/s</div>
+                </div>
+            </div>
+
+            <div class="panel-header">Gerçek Zamanlı Akış</div>
+            <div class="chart-container">
+                <canvas id="telemetryChart"></canvas>
+            </div>
+
+            <div style="margin-top: 25px;">
+                <div class="panel-header">İstasyon Kontrol</div>
+                <div style="font-size: 10px; margin-bottom: 8px; color: #8b949e;">ALMA / BIRAKMA</div>
+                <div class="control-grid">
+                    <button class="btn" onclick="goto('A1')">A1</button>
+                    <button class="btn" onclick="goto('A2')">A2</button>
+                    <button class="btn" onclick="goto('B1')">B1</button>
+                    <button class="btn" onclick="goto('B2')">B2</button>
+                    <button class="btn" onclick="goto('CHRG')" style="grid-column: span 2;">ŞARJ İSTASYONU</button>
                 </div>
             </div>
         </section>
 
         <!-- Map -->
-        <section class="map-container">
+        <section class="map-container glass-panel" style="background: rgba(0,0,0,0.2);">
             <canvas id="fieldCanvas" width="800" height="600"></canvas>
-            <div id="estopAlert" class="alert" style="position: absolute; bottom: 20px; width: 80%; display: none;">
-                ⚠️ ACİL DURDURMA AKTİF: Robot sistemleri kilitlendi. Güvenliği kontrol edip sıfırlayın.
+            <div id="estopAlert" class="alert" style="position: absolute; bottom: 20px; width: 90%; display: none;">
+                ⚠️ KRİTİK: Acil durdurma aktif. Sistemler kilitli.
             </div>
         </section>
 
         <!-- Logs & Status -->
-        <section class="panel">
-            <h3 style="font-size: 14px; margin-bottom: 20px; color: #8b949e;">İŞ DURUMU & GÜNLÜK</h3>
-            <div id="jobStatus" style="background: var(--card); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-                <div style="font-size: 12px; color: #8b949e;">AKTİF GÖREV</div>
-                <div id="activeJob" style="font-weight: bold; margin-top: 5px;">BEKLEMEDE</div>
+        <section class="panel glass-panel" style="padding: 20px; display: flex; flex-direction: column;">
+            <div class="panel-header">Görev Durumu</div>
+            <div id="jobStatus"
+                style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 10px; margin-bottom: 20px; border: 1px solid var(--border);">
+                <div style="font-size: 11px; color: #8b949e;">AKTİF MOD</div>
+                <div id="activeJob" style="font-weight: 800; margin-top: 5px; color: var(--accent);">BEKLEMEDE</div>
             </div>
 
-            <div id="logArea" style="flex: 1; font-family: monospace; font-size: 11px; color: #58a6ff; overflow-y: auto;">
+            <div class="panel-header">Sistem Günlüğü</div>
+            <div id="logArea">
                 [SYS] Motor sürücüleri başlatıldı...<br>
                 [SYS] LiDAR haritalama aktif.<br>
             </div>
@@ -106,86 +339,139 @@
     <script>
         const canvas = document.getElementById('fieldCanvas');
         const ctx = canvas.getContext('2d');
-        let robotPos = {x: 0, y: 0};
+        let robotPos = { x: 0, y: 0 };
         let isEmergency = false;
+
+        // Chart.js init
+        const chartCtx = document.getElementById('telemetryChart').getContext('2d');
+        const telemetryChart = new Chart(chartCtx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Batarya %',
+                    borderColor: '#00f2ff',
+                    borderWidth: 2,
+                    data: [],
+                    fill: true,
+                    backgroundColor: 'rgba(0, 242, 255, 0.1)',
+                    tension: 0.4,
+                    pointRadius: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: { display: false },
+                    y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#8b949e', font: { size: 10 } } }
+                },
+                plugins: { legend: { display: false } }
+            }
+        });
 
         function drawField() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
-            // Grid
-            ctx.strokeStyle = '#21262d';
+
+            // Background Grid (Radar Style)
+            ctx.strokeStyle = 'rgba(0, 242, 255, 0.05)';
             ctx.lineWidth = 1;
-            for(let i=0; i<canvas.width; i+=40) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke(); }
-            for(let i=0; i<canvas.height; i+=40) { ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(canvas.width, i); ctx.stroke(); }
+            for (let i = 0; i < canvas.width; i += 40) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke(); }
+            for (let i = 0; i < canvas.height; i += 40) { ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(canvas.width, i); ctx.stroke(); }
 
             // Stations
             const stations = [
-                {n: 'A1', x: 2, y: 2}, {n: 'A2', x: 6, y: 2}, {n: 'A3', x: 10, y: 2}, {n: 'A4', x: 14, y: 2},
-                {n: 'B1', x: 2, y: 12}, {n: 'B2', x: 6, y: 12}, {n: 'B3', x: 10, y: 12}, {n: 'B4', x: 14, y: 12},
-                {n: 'START', x: 0, y: 0}, {n: 'CHRG', x: 17, y: 7}
+                { n: 'A1', x: 2, y: 2 }, { n: 'A2', x: 6, y: 2 }, { n: 'A3', x: 10, y: 2 }, { n: 'A4', x: 14, y: 2 },
+                { n: 'B1', x: 2, y: 12 }, { n: 'B2', x: 6, y: 12 }, { n: 'B3', x: 10, y: 12 }, { n: 'B4', x: 14, y: 12 },
+                { n: 'CHRG', x: 17, y: 7 }
             ];
-            
+
             stations.forEach(s => {
-                ctx.fillStyle = s.n.startsWith('A') ? '#1f6feb' : (s.n === 'CHRG' ? '#a371f7' : '#238636');
-                ctx.fillRect(s.x*40, s.y*40, 30, 30);
+                const color = s.n.startsWith('A') ? '#1f6feb' : (s.n === 'CHRG' ? '#a371f7' : '#238636');
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 2;
+                ctx.strokeRect(s.x * 40, s.y * 40, 32, 32);
+                ctx.fillStyle = 'rgba(255,255,255,0.1)';
+                ctx.fillRect(s.x * 40, s.y * 40, 32, 32);
                 ctx.fillStyle = 'white';
-                ctx.font = '10px Arial';
-                ctx.fillText(s.n, s.x*40 + 5, s.y*40 + 20);
+                ctx.font = 'bold 10px Outfit';
+                ctx.fillText(s.n, s.x * 40 + 4, s.y * 40 + 20);
             });
 
-            // Robot
+            // Robot Path (Glow Effect)
             ctx.shadowBlur = 15;
             ctx.shadowColor = isEmergency ? '#ff4d4d' : '#00f2ff';
             ctx.fillStyle = isEmergency ? '#ff4d4d' : '#00f2ff';
+
             ctx.beginPath();
-            ctx.arc(robotPos.x*40 + 15, robotPos.y*40 + 15, 12, 0, Math.PI*2);
+            ctx.arc(robotPos.x * 40 + 16, robotPos.y * 40 + 16, 10, 0, Math.PI * 2);
             ctx.fill();
+
+            // Robot Outline
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = 2;
+            ctx.stroke();
             ctx.shadowBlur = 0;
         }
 
         const ws = new WebSocket(`ws://${window.location.host}/ws`);
         ws.onmessage = (e) => {
             const data = JSON.parse(e.data);
+            const robot = data.robot;
+
             document.getElementById('clock').innerText = data.zaman;
-            document.getElementById('batVal').innerText = data.robot.battery + '%';
-            document.getElementById('voltVal').innerText = data.robot.voltage + 'V';
-            document.getElementById('ampVal').innerText = data.robot.current + 'A';
-            document.getElementById('speedVal').innerText = data.robot.speed + 'm/s';
-            
-            robotPos = data.robot.pos;
-            isEmergency = data.robot.emergency;
+            document.getElementById('batVal').innerText = robot.battery + '%';
+            document.getElementById('voltVal').innerText = robot.voltage + 'V';
+            document.getElementById('ampVal').innerText = robot.current + 'A';
+            document.getElementById('speedVal').innerText = robot.speed + 'm/s';
+            document.getElementById('activeJob').innerText = robot.status;
+
+            robotPos = robot.pos;
+            isEmergency = robot.emergency;
 
             document.getElementById('estopAlert').style.display = isEmergency ? 'block' : 'none';
-            document.getElementById('estopBtn').innerText = isEmergency ? 'RESETLE' : 'ACİL DURDURMA';
-            document.getElementById('estopBtn').style.background = isEmergency ? '#3fb950' : '#ff4d4d';
+            document.getElementById('estopBtn').innerText = isEmergency ? 'SİSTEMİ SIFIRLA' : 'ACİL DURDURMA';
+            document.getElementById('estopBtn').style.background = isEmergency ? '#3fb950' : 'rgba(255, 77, 77, 0.1)';
+            document.getElementById('estopBtn').style.color = isEmergency ? 'white' : '#ff4d4d';
+
+            // Update Chart
+            if (telemetryChart.data.labels.length > 20) {
+                telemetryChart.data.labels.shift();
+                telemetryChart.data.datasets[0].data.shift();
+            }
+            telemetryChart.data.labels.push(data.zaman);
+            telemetryChart.data.datasets[0].data.push(robot.battery);
+            telemetryChart.update('none');
 
             drawField();
         };
 
-        function goto(station) {
-            fetch('/api/command', {
+        async function goto(station) {
+            const res = await fetch('/api/command', {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({action: 'GOTO', station: station})
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'GOTO', station: station })
             });
-            log(`[NAV] Hedef: ${station}`);
+            if (res.ok) log(`[NAV] Hedef Belirlendi: ${station}`, 'info');
         }
 
-        function toggleEmergency() {
-            fetch('/api/command', {
+        async function toggleEmergency() {
+            await fetch('/api/command', {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({action: isEmergency ? 'RESET' : 'EMERGENCY_STOP'})
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: isEmergency ? 'RESET' : 'EMERGENCY_STOP' })
             });
         }
 
-        function log(msg) {
+        function log(msg, type) {
             const area = document.getElementById('logArea');
-            area.innerHTML += `> ${msg}<br>`;
+            const color = type === 'warn' ? '#ffae00' : (type === 'err' ? '#ff4d4d' : '#58a6ff');
+            area.innerHTML += `<div style="color: ${color}">> ${msg}</div>`;
             area.scrollTop = area.scrollHeight;
         }
 
-        setInterval(drawField, 100);
+        setInterval(drawField, 50);
     </script>
 </body>
+
 </html>

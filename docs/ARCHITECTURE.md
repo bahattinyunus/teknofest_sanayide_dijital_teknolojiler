@@ -1,0 +1,55 @@
+# System Architecture: SKYGUARD AMR-OS
+
+## Core Philosophy
+SKYGUARD AMR-OS is built on the **Digital Twin** paradigm. Every component in the system is designed to provide a high-fidelity representation of a physical AMR, allowing for remote monitoring, predictive maintenance, and precise control.
+
+## System Components
+
+### 1. Digital Twin Engine (`src/main.py`)
+The `DijitalIkiz` class acts as the single source of truth for the robot's state. It handles:
+- **Kinematics Simulation**: Smooth transition between grid coordinates.
+- **Power Management**: Discharge curves based on activity (IDLE vs. NAVIGATING).
+- **Fail-Safe Logic**: Latency-aware emergency state management.
+
+### 2. Real-time Telemetry (WebSocket)
+Data is streamed from the simulation engine to the dashboard every 1000ms (configurable).
+- **Schema**:
+  ```json
+  {
+    "zaman": "HH:MM:SS",
+    "robot": {
+      "id": "SKYGUARD-01",
+      "battery": 98.2,
+      "pos": {"x": 2.4, "y": 5.1},
+      "status": "NAVIGATING"
+    }
+  }
+  ```
+
+### 3. Command API (REST)
+Control commands are sent via HTTP POST requests to `/api/command`. This ensures that every command is acknowledged before execution.
+- **Endpoints**:
+  - `GOTO`: Coordinates navigation to predefined stations.
+  - `EMERGENCY_STOP`: Immediate hardware-level (simulated) halt.
+  - `RESET`: Restores system state after an E-Stop.
+
+### 4. Interactive Command Center (Frontend)
+- **Glassmorphism UI**: Uses background-blur and semi-transparent layers for a modern aesthetic.
+- **HTML5 Canvas**: Frame-synced renderer for the robot and industrial field.
+- **Chart.js**: Temporal data visualization for battery health.
+
+## Data Flow Diagram
+```mermaid
+graph TD
+    A[Simulation Tick] --> B[Update DijitalIkiz State]
+    B --> C{WebSocket Stream}
+    C --> D[Frontend Canvas Update]
+    C --> E[Chart Telemetry Update]
+    F[User Control] --> G[REST API /api/command]
+    G --> B
+```
+
+## Future Roadmap
+- [ ] SQLite integration for long-term telemetry logging.
+- [ ] PID controller simulation for smoother navigation.
+- [ ] Multi-AMR coordination support.
