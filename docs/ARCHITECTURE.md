@@ -11,7 +11,17 @@ The `DijitalIkiz` class acts as the single source of truth for the robot's state
 - **Power Management**: Discharge curves based on activity (IDLE vs. NAVIGATING).
 - **Fail-Safe Logic**: Latency-aware emergency state management.
 
-### 2. Real-time Telemetry (WebSocket)
+### 2. Mission Persistence Layer (SQLite)
+The system automatically logs telemetry snapshots to `missions.db`.
+- **Periodic Sampling**: Telemetry frames are preserved using a probabilistic sampling method to ensure balanced storage and coverage.
+- **Schema Recovery**: Historical data is fetched via the `/api/history` REST endpoint for UI analysis.
+
+### 3. Diagnostic Engine
+Integrated directly into the `update()` cycle:
+- **Anomaly Detection**: Monitors $dI/dt$ and $dV/dt$ to detect power system spikes and unexpected battery drops.
+- **Reactive UI**: Triggers "Anomaly Mode" (pulsative visual feedback) on the dashboard when critical thresholds are crossed.
+
+### 4. Real-time Telemetry (WebSocket)
 Data is streamed from the simulation engine to the dashboard every 1000ms (configurable).
 - **Schema**:
   ```json
@@ -42,7 +52,10 @@ Control commands are sent via HTTP POST requests to `/api/command`. This ensures
 ```mermaid
 graph TD
     A[Simulation Tick] --> B[Update DijitalIkiz State]
+    B --> H{Diagnostic Engine}
+    H -->|Anomaly| I[UI Alert State]
     B --> C{WebSocket Stream}
+    B --> J[SQLite Persistence]
     C --> D[Frontend Canvas Update]
     C --> E[Chart Telemetry Update]
     F[User Control] --> G[REST API /api/command]

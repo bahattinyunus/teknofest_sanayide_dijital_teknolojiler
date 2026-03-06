@@ -256,6 +256,47 @@
             background: var(--border);
             border-radius: 10px;
         }
+
+        /* Anomaly Pulse */
+        .anomaly-border {
+            border-color: var(--danger) !important;
+            box-shadow: 0 0 15px rgba(255, 77, 77, 0.4);
+            animation: pulse-red 1.5s infinite;
+        }
+
+        @keyframes pulse-red {
+            0% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.7;
+            }
+
+            100% {
+                opacity: 1;
+            }
+        }
+
+        /* History Table */
+        .history-table {
+            width: 100%;
+            font-size: 10px;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        .history-table th {
+            text-align: left;
+            color: #8b949e;
+            padding: 5px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .history-table td {
+            padding: 5px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+        }
     </style>
 </head>
 
@@ -317,13 +358,29 @@
             </div>
         </section>
 
-        <!-- Logs & Status -->
+        <!-- Logs & History -->
         <section class="panel glass-panel" style="padding: 20px; display: flex; flex-direction: column;">
             <div class="panel-header">Görev Durumu</div>
             <div id="jobStatus"
                 style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 10px; margin-bottom: 20px; border: 1px solid var(--border);">
                 <div style="font-size: 11px; color: #8b949e;">AKTİF MOD</div>
                 <div id="activeJob" style="font-weight: 800; margin-top: 5px; color: var(--accent);">BEKLEMEDE</div>
+            </div>
+
+            <div class="panel-header" style="margin-top: 10px;">Geçmiş Analiz</div>
+            <div
+                style="flex: 0.6; overflow-y: auto; background: rgba(0,0,0,0.2); border-radius: 8px; padding: 10px; margin-bottom: 20px;">
+                <table class="history-table" id="historyTable">
+                    <thead>
+                        <tr>
+                            <th>SAAT</th>
+                            <th>BAT</th>
+                            <th>DURUM</th>
+                            <th>ANOMALİ</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
             </div>
 
             <div class="panel-header">Sistem Günlüğü</div>
@@ -429,6 +486,15 @@
             robotPos = robot.pos;
             isEmergency = robot.emergency;
 
+            // Anomaly UI Feedback
+            const metrics = document.querySelectorAll('.metric');
+            if (robot.anomaly) {
+                metrics.forEach(m => m.classList.add('anomaly-border'));
+                if (Math.random() < 0.1) log("⚠️ KRİTİK: Güç sisteminde anomali tespit edildi!", "err");
+            } else {
+                metrics.forEach(m => m.classList.remove('anomaly-border'));
+            }
+
             document.getElementById('estopAlert').style.display = isEmergency ? 'block' : 'none';
             document.getElementById('estopBtn').innerText = isEmergency ? 'SİSTEMİ SIFIRLA' : 'ACİL DURDURMA';
             document.getElementById('estopBtn').style.background = isEmergency ? '#3fb950' : 'rgba(255, 77, 77, 0.1)';
@@ -445,6 +511,24 @@
 
             drawField();
         };
+
+        async function fetchHistory() {
+            try {
+                const res = await fetch('/api/history');
+                const data = await res.json();
+                const tbody = document.querySelector('#historyTable tbody');
+                tbody.innerHTML = data.map(row => `
+                    <tr>
+                        <td>${row.timestamp}</td>
+                        <td>${row.battery}%</td>
+                        <td>${row.status}</td>
+                        <td style="color: ${row.anomaly === 'True' ? 'var(--danger)' : '#3fb950'}">${row.anomaly === 'True' ? 'EVET' : 'YOK'}</td>
+                    </tr>
+                `).join('');
+            } catch (e) { }
+        }
+        setInterval(fetchHistory, 5000);
+        fetchHistory();
 
         async function goto(station) {
             const res = await fetch('/api/command', {
