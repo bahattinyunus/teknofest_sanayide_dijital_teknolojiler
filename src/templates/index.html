@@ -7,6 +7,7 @@
     <title>SKYGUARD | Teknofest Komuta Merkezi</title>
     <title>SKYGUARD | Teknofest Komuta Merkezi</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -257,6 +258,53 @@
             border-radius: 10px;
         }
 
+        /* Fleet Selector */
+        .fleet-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .robot-tab {
+            flex: 1;
+            padding: 10px;
+            background: var(--glass);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: center;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .robot-tab.active {
+            background: var(--accent);
+            color: #000;
+            border-color: var(--accent);
+        }
+
+        /* 3D Container */
+        #threeContainer {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: none;
+        }
+
+        .view-toggle {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 10;
+            padding: 8px 12px;
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: white;
+            cursor: pointer;
+            font-size: 10px;
+        }
+
         /* Anomaly Pulse */
         .anomaly-border {
             border-color: var(--danger) !important;
@@ -312,7 +360,13 @@
     <main>
         <!-- Telemetry -->
         <section class="panel glass-panel" style="padding: 20px; display: flex; flex-direction: column;">
-            <div class="panel-header">Telemetri Analizi</div>
+            <div class="panel-header">Filo Yönetimi</div>
+            <div class="fleet-selector" id="fleetSelector">
+                <div class="robot-tab active" onclick="selectRobot('SKYGUARD-01')">SKYGUARD-01</div>
+                <div class="robot-tab" onclick="selectRobot('SKYGUARD-02')">SKYGUARD-02</div>
+            </div>
+
+            <div class="panel-header">Telemetri [SK-01]</div>
             <div class="telemetry-grid">
                 <div class="metric">
                     <div class="label">BATARYA</div>
@@ -350,8 +404,10 @@
             </div>
         </section>
 
-        <!-- Map -->
+        <!-- Map / 3D -->
         <section class="map-container glass-panel" style="background: rgba(0,0,0,0.2);">
+            <button class="view-toggle" onclick="toggle3D()">3D GÖRÜNÜMÜ AÇ</button>
+            <div id="threeContainer"></div>
             <canvas id="fieldCanvas" width="800" height="600"></canvas>
             <div id="estopAlert" class="alert" style="position: absolute; bottom: 20px; width: 90%; display: none;">
                 ⚠️ KRİTİK: Acil durdurma aktif. Sistemler kilitli.
@@ -392,12 +448,45 @@
             <button class="btn btn-emergency" id="estopBtn" onclick="toggleEmergency()">ACİL DURDURMA</button>
         </section>
     </main>
-
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.158.0/three.min.js"></script>
     <script>
         const canvas = document.getElementById('fieldCanvas');
         const ctx = canvas.getContext('2d');
-        let robotPos = { x: 0, y: 0 };
-        let isEmergency = false;
+        let fleet = {};
+        let activeRobotId = 'SKYGUARD-01';
+        let is3D = false;
+
+        // Three.js Setup
+        const t_scene = new THREE.Scene();
+        const t_camera = new THREE.PerspectiveCamera(75, 800 / 600, 0.1, 1000);
+        const t_renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        t_renderer.setSize(800, 600);
+        document.getElementById('threeContainer').appendChild(t_renderer.domElement);
+
+        const t_geometry = new THREE.BoxGeometry(0.5, 0.3, 0.8);
+        const t_material = new THREE.MeshPhongMaterial({ color: 0x00f2ff, emissive: 0x00f2ff, emissiveIntensity: 0.5 });
+        const t_mesh = new THREE.Mesh(t_geometry, t_material);
+        t_scene.add(t_mesh);
+
+        const light = new THREE.PointLight(0xffffff, 1, 100);
+        light.position.set(5, 5, 5);
+        t_scene.add(light);
+        t_camera.position.set(2, 2, 5);
+        t_camera.lookAt(0, 0, 0);
+
+        function toggle3D() {
+            is3D = !is3D;
+            document.getElementById('threeContainer').style.display = is3D ? 'block' : 'none';
+            canvas.style.display = is3D ? 'none' : 'block';
+            document.querySelector('.view-toggle').innerText = is3D ? '2D HARİTAYA DÖN' : '3D GÖRÜNÜMÜ AÇ';
+        }
+
+        function selectRobot(id) {
+            activeRobotId = id;
+            document.querySelectorAll('.robot-tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+            log(`[SYS] Odak Değişti: ${id}`, 'info');
+        }
 
         // Chart.js init
         const chartCtx = document.getElementById('telemetryChart').getContext('2d');
@@ -430,7 +519,7 @@
         function drawField() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // Background Grid (Radar Style)
+            // Background Grid
             ctx.strokeStyle = 'rgba(0, 242, 255, 0.05)';
             ctx.lineWidth = 1;
             for (let i = 0; i < canvas.width; i += 40) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke(); }
@@ -448,57 +537,74 @@
                 ctx.strokeStyle = color;
                 ctx.lineWidth = 2;
                 ctx.strokeRect(s.x * 40, s.y * 40, 32, 32);
-                ctx.fillStyle = 'rgba(255,255,255,0.1)';
-                ctx.fillRect(s.x * 40, s.y * 40, 32, 32);
-                ctx.fillStyle = 'white';
-                ctx.font = 'bold 10px Outfit';
+                ctx.fillStyle = 'white'; ctx.font = 'bold 10px Outfit';
                 ctx.fillText(s.n, s.x * 40 + 4, s.y * 40 + 20);
             });
 
-            // Robot Path (Glow Effect)
-            ctx.shadowBlur = 15;
-            ctx.shadowColor = isEmergency ? '#ff4d4d' : '#00f2ff';
-            ctx.fillStyle = isEmergency ? '#ff4d4d' : '#00f2ff';
+            // Fleet Rendering
+            Object.values(fleet).forEach(robot => {
+                const isFocus = robot.id === activeRobotId;
+                const isEmergency = robot.emergency;
 
-            ctx.beginPath();
-            ctx.arc(robotPos.x * 40 + 16, robotPos.y * 40 + 16, 10, 0, Math.PI * 2);
-            ctx.fill();
+                // Path Rendering
+                if (robot.path && robot.path.length > 0) {
+                    ctx.strokeStyle = 'rgba(0, 242, 255, 0.2)';
+                    ctx.setLineDash([5, 5]);
+                    ctx.beginPath();
+                    ctx.moveTo(robot.pos.x * 40 + 16, robot.pos.y * 40 + 16);
+                    robot.path.forEach(p => ctx.lineTo(p.x * 40 + 16, p.y * 40 + 16));
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                }
 
-            // Robot Outline
-            ctx.strokeStyle = 'white';
-            ctx.lineWidth = 2;
-            ctx.stroke();
+                // Robot
+                ctx.shadowBlur = isFocus ? 20 : 5;
+                ctx.shadowColor = isEmergency ? '#ff4d4d' : '#00f2ff';
+                ctx.fillStyle = isEmergency ? '#ff4d4d' : (isFocus ? '#00f2ff' : '#1f6feb');
+
+                ctx.beginPath();
+                ctx.arc(robot.pos.x * 40 + 16, robot.pos.y * 40 + 16, isFocus ? 12 : 8, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = 'white';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+
+                if (is3D && isFocus) {
+                    t_mesh.position.set(robot.pos.x - 8.5, 0, robot.pos.y - 7.5);
+                    t_mesh.rotation.y += 0.01;
+                    t_renderer.render(t_scene, t_camera);
+                }
+            });
             ctx.shadowBlur = 0;
         }
 
         const ws = new WebSocket(`ws://${window.location.host}/ws`);
         ws.onmessage = (e) => {
             const data = JSON.parse(e.data);
-            const robot = data.robot;
+            fleet = data.fleet;
+            const activeRobot = fleet[activeRobotId];
 
             document.getElementById('clock').innerText = data.zaman;
-            document.getElementById('batVal').innerText = robot.battery + '%';
-            document.getElementById('voltVal').innerText = robot.voltage + 'V';
-            document.getElementById('ampVal').innerText = robot.current + 'A';
-            document.getElementById('speedVal').innerText = robot.speed + 'm/s';
-            document.getElementById('activeJob').innerText = robot.status;
-
-            robotPos = robot.pos;
-            isEmergency = robot.emergency;
+            document.getElementById('batVal').innerText = activeRobot.battery + '%';
+            document.getElementById('voltVal').innerText = activeRobot.voltage + 'V';
+            document.getElementById('ampVal').innerText = activeRobot.current + 'A';
+            document.getElementById('speedVal').innerText = activeRobot.speed + 'm/s';
+            document.getElementById('activeJob').innerText = activeRobot.status;
 
             // Anomaly UI Feedback
             const metrics = document.querySelectorAll('.metric');
-            if (robot.anomaly) {
+            if (activeRobot.anomaly) {
                 metrics.forEach(m => m.classList.add('anomaly-border'));
                 if (Math.random() < 0.1) log("⚠️ KRİTİK: Güç sisteminde anomali tespit edildi!", "err");
             } else {
                 metrics.forEach(m => m.classList.remove('anomaly-border'));
             }
 
+            const isEmergency = Object.values(fleet).some(r => r.emergency);
             document.getElementById('estopAlert').style.display = isEmergency ? 'block' : 'none';
-            document.getElementById('estopBtn').innerText = isEmergency ? 'SİSTEMİ SIFIRLA' : 'ACİL DURDURMA';
-            document.getElementById('estopBtn').style.background = isEmergency ? '#3fb950' : 'rgba(255, 77, 77, 0.1)';
-            document.getElementById('estopBtn').style.color = isEmergency ? 'white' : '#ff4d4d';
+            document.getElementById('estopBtn').innerText = activeRobot.emergency ? 'ROBOTU SIFIRLA' : 'ACİL DURDURMA';
+            document.getElementById('estopBtn').style.background = activeRobot.emergency ? '#3fb950' : 'rgba(255, 77, 77, 0.1)';
+            document.getElementById('estopBtn').style.color = activeRobot.emergency ? 'white' : '#ff4d4d';
 
             // Update Chart
             if (telemetryChart.data.labels.length > 20) {
@@ -506,7 +612,7 @@
                 telemetryChart.data.datasets[0].data.shift();
             }
             telemetryChart.data.labels.push(data.zaman);
-            telemetryChart.data.datasets[0].data.push(robot.battery);
+            telemetryChart.data.datasets[0].data.push(activeRobot.battery);
             telemetryChart.update('none');
 
             drawField();
@@ -534,16 +640,20 @@
             const res = await fetch('/api/command', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'GOTO', station: station })
+                body: JSON.stringify({ action: 'GOTO', station: station, robot_id: activeRobotId })
             });
-            if (res.ok) log(`[NAV] Hedef Belirlendi: ${station}`, 'info');
+            if (res.ok) log(`[NAV] ${activeRobotId} -> ${station}`, 'info');
         }
 
         async function toggleEmergency() {
+            const activeRobot = fleet[activeRobotId];
             await fetch('/api/command', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: isEmergency ? 'RESET' : 'EMERGENCY_STOP' })
+                body: JSON.stringify({
+                    action: activeRobot.emergency ? 'RESET' : 'EMERGENCY_STOP',
+                    robot_id: activeRobotId
+                })
             });
         }
 

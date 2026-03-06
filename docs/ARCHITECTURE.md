@@ -5,11 +5,13 @@ SKYGUARD AMR-OS is built on the **Digital Twin** paradigm. Every component in th
 
 ## System Components
 
-### 1. Digital Twin Engine (`src/main.py`)
-The `DijitalIkiz` class acts as the single source of truth for the robot's state. It handles:
-- **Kinematics Simulation**: Smooth transition between grid coordinates.
+### 1. Fleet Dynamics Engine (`src/main.py`)
+The system has been scaled to manage a heterogeneous fleet of robots.
+- **Fleet Synchronization**: Concurrent tracking of multiple `DijitalIkiz` instances.
+- **Kinematics Simulation**: Smooth transition between grid coordinates with individual robot state preservation.
+- **Path Prediction**: Simulation of A* breadcrumbs for navigation visualization.
 - **Power Management**: Discharge curves based on activity (IDLE vs. NAVIGATING).
-- **Fail-Safe Logic**: Latency-aware emergency state management.
+- **Fail-Safe Logic**: Per-robot and global emergency state management.
 
 ### 2. Mission Persistence Layer (SQLite)
 The system automatically logs telemetry snapshots to `missions.db`.
@@ -43,21 +45,23 @@ Control commands are sent via HTTP POST requests to `/api/command`. This ensures
   - `EMERGENCY_STOP`: Immediate hardware-level (simulated) halt.
   - `RESET`: Restores system state after an E-Stop.
 
-### 4. Interactive Command Center (Frontend)
+### 5. Multi-Mode Visualization (Frontend)
 - **Glassmorphism UI**: Uses background-blur and semi-transparent layers for a modern aesthetic.
-- **HTML5 Canvas**: Frame-synced renderer for the robot and industrial field.
-- **Chart.js**: Temporal data visualization for battery health.
+- **HTML5 Canvas**: Frame-synced renderer for the fleet and industrial field.
+- **Three.js Digital Twin**: A perspective-correct 3D mode for spatial orientation and depth analysis.
+- **Chart.js**: Temporal data visualization for battery health across the active robot.
 
 ## Data Flow Diagram
 ```mermaid
 graph TD
-    A[Simulation Tick] --> B[Update DijitalIkiz State]
+    A[Simulation Tick] --> B[Update Fleet State]
     B --> H{Diagnostic Engine}
     H -->|Anomaly| I[UI Alert State]
     B --> C{WebSocket Stream}
     B --> J[SQLite Persistence]
-    C --> D[Frontend Canvas Update]
-    C --> E[Chart Telemetry Update]
+    C --> D[Fleet Map Update]
+    C --> E[Active Robot Telemetry]
+    C --> K[Three.js 3D Render]
     F[User Control] --> G[REST API /api/command]
     G --> B
 ```
